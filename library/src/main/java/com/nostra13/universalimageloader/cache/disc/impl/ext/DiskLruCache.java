@@ -92,10 +92,10 @@ final class DiskLruCache implements Closeable {
 	static final String VERSION_1 = "1";
 	static final long ANY_SEQUENCE_NUMBER = -1;
 	static final Pattern LEGAL_KEY_PATTERN = Pattern.compile("[a-z0-9_-]{1,64}");
-	private static final String CLEAN = "CLEAN";
-	private static final String DIRTY = "DIRTY";
-	private static final String REMOVE = "REMOVE";
-	private static final String READ = "READ";
+	private static final String CLEAN = "CLEAN";//entry已经备好，可读
+	private static final String DIRTY = "DIRTY";//entry被创建或者被更新
+	private static final String REMOVE = "REMOVE";//被删除
+	private static final String READ = "READ";//被read
 
     /*
      * This cache uses a journal file named "journal". A typical journal file
@@ -252,6 +252,7 @@ final class DiskLruCache implements Closeable {
 	}
 
 	private void readJournal() throws IOException {
+	    //逐行读取文件里的信息
 		StrictLineReader reader = new StrictLineReader(new FileInputStream(journalFile), Util.US_ASCII);
 		try {
 			String magic = reader.readLine();
@@ -277,6 +278,7 @@ final class DiskLruCache implements Closeable {
 					break;
 				}
 			}
+			//重复操作数(key相同)
 			redundantOpCount = lineCount - lruEntries.size();
 		} finally {
 			Util.closeQuietly(reader);
@@ -284,6 +286,7 @@ final class DiskLruCache implements Closeable {
 	}
 
 	private void readJournalLine(String line) throws IOException {
+	    //每行文件以' '（空格）开头
 		int firstSpace = line.indexOf(' ');
 		if (firstSpace == -1) {
 			throw new IOException("unexpected journal line: " + line);
@@ -292,7 +295,7 @@ final class DiskLruCache implements Closeable {
 		int keyBegin = firstSpace + 1;
 		int secondSpace = line.indexOf(' ', keyBegin);
 		final String key;
-		if (secondSpace == -1) {
+		if (secondSpace == -1) {//不存在第二个可选空格 remove dirty?
 			key = line.substring(keyBegin);
 			if (firstSpace == REMOVE.length() && line.startsWith(REMOVE)) {
 				lruEntries.remove(key);
@@ -302,17 +305,17 @@ final class DiskLruCache implements Closeable {
 			key = line.substring(keyBegin, secondSpace);
 		}
 
-		Entry entry = lruEntries.get(key);
+		Entry entry = lruEntries.get(key);//获取操作的entry
 		if (entry == null) {
 			entry = new Entry(key);
 			lruEntries.put(key, entry);
-		}
+		}//填充到lru缓存列表中
 
-		if (secondSpace != -1 && firstSpace == CLEAN.length() && line.startsWith(CLEAN)) {
+		if (secondSpace != -1 && firstSpace == CLEAN.length() && line.startsWith(CLEAN)) {//Clean操作,代表可读了。。其他状态都不可读
 			String[] parts = line.substring(secondSpace + 1).split(" ");
 			entry.readable = true;
 			entry.currentEditor = null;
-			entry.setLengths(parts);
+			entry.setLengths(parts);//可读文件的大小size
 		} else if (secondSpace == -1 && firstSpace == DIRTY.length() && line.startsWith(DIRTY)) {
 			entry.currentEditor = new Editor(entry);
 		} else if (secondSpace == -1 && firstSpace == READ.length() && line.startsWith(READ)) {
@@ -445,9 +448,10 @@ final class DiskLruCache implements Closeable {
 			return null;
 		}
 
+		//执行了一次读取操作
 		redundantOpCount++;
 		journalWriter.append(READ + ' ' + key + '\n');
-		if (journalRebuildRequired()) {
+		if (journalRebuildRequired()) {//达到上限2000条就重建
 			executorService.submit(cleanupCallable);
 		}
 
@@ -964,10 +968,12 @@ final class DiskLruCache implements Closeable {
 		}
 
 		public File getCleanFile(int i) {
+		    //key.0
 			return new File(directory, key + "." + i);
 		}
 
 		public File getDirtyFile(int i) {
+		    //key.0.tmp
 			return new File(directory, key + "." + i + ".tmp");
 		}
 	}

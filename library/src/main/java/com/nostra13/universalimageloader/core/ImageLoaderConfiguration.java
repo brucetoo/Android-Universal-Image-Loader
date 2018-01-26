@@ -75,6 +75,8 @@ public final class ImageLoaderConfiguration {
 	final ImageDownloader networkDeniedDownloader;
 	final ImageDownloader slowNetworkDownloader;
 
+	final int preventFlickerId;
+
 	private ImageLoaderConfiguration(final Builder builder) {
 		resources = builder.context.getResources();
 		maxImageWidthForMemoryCache = builder.maxImageWidthForMemoryCache;
@@ -95,6 +97,8 @@ public final class ImageLoaderConfiguration {
 
 		customExecutor = builder.customExecutor;
 		customExecutorForCachedImages = builder.customExecutorForCachedImages;
+
+        preventFlickerId = builder.preventFlickerId;
 
 		networkDeniedDownloader = new NetworkDeniedImageDownloader(downloader);
 		slowNetworkDownloader = new SlowNetworkImageDownloader(downloader);
@@ -189,6 +193,7 @@ public final class ImageLoaderConfiguration {
 		private ImageDownloader downloader = null;
 		private ImageDecoder decoder;
 		private DisplayImageOptions defaultDisplayImageOptions = null;
+		private int preventFlickerId = -1;
 
 		private boolean writeLogs = false;
 
@@ -208,17 +213,6 @@ public final class ImageLoaderConfiguration {
 			this.maxImageWidthForMemoryCache = maxImageWidthForMemoryCache;
 			this.maxImageHeightForMemoryCache = maxImageHeightForMemoryCache;
 			return this;
-		}
-
-		/**
-		 * @deprecated Use
-		 * {@link #diskCacheExtraOptions(int, int, com.nostra13.universalimageloader.core.process.BitmapProcessor)}
-		 * instead
-		 */
-		@Deprecated
-		public Builder discCacheExtraOptions(int maxImageWidthForDiskCache, int maxImageHeightForDiskCache,
-				BitmapProcessor processorForDiskCache) {
-			return diskCacheExtraOptions(maxImageWidthForDiskCache, maxImageHeightForDiskCache, processorForDiskCache);
 		}
 
 		/**
@@ -408,12 +402,6 @@ public final class ImageLoaderConfiguration {
 			return this;
 		}
 
-		/** @deprecated Use {@link #diskCacheSize(int)} instead */
-		@Deprecated
-		public Builder discCacheSize(int maxCacheSize) {
-			return diskCacheSize(maxCacheSize);
-		}
-
 		/**
 		 * Sets maximum disk cache size for images (in bytes).<br />
 		 * By default: disk cache is unlimited.<br />
@@ -431,12 +419,6 @@ public final class ImageLoaderConfiguration {
 
 			this.diskCacheSize = maxCacheSize;
 			return this;
-		}
-
-		/** @deprecated Use {@link #diskCacheFileCount(int)} instead */
-		@Deprecated
-		public Builder discCacheFileCount(int maxFileCount) {
-			return diskCacheFileCount(maxFileCount);
 		}
 
 		/**
@@ -458,12 +440,6 @@ public final class ImageLoaderConfiguration {
 			return this;
 		}
 
-		/** @deprecated Use {@link #diskCacheFileNameGenerator(com.nostra13.universalimageloader.cache.disc.naming.FileNameGenerator)} */
-		@Deprecated
-		public Builder discCacheFileNameGenerator(FileNameGenerator fileNameGenerator) {
-			return diskCacheFileNameGenerator(fileNameGenerator);
-		}
-
 		/**
 		 * Sets name generator for files cached in disk cache.<br />
 		 * Default value -
@@ -477,12 +453,6 @@ public final class ImageLoaderConfiguration {
 
 			this.diskCacheFileNameGenerator = fileNameGenerator;
 			return this;
-		}
-
-		/** @deprecated Use {@link #diskCache(com.nostra13.universalimageloader.cache.disc.DiskCache)} */
-		@Deprecated
-		public Builder discCache(DiskCache diskCache) {
-			return diskCache(diskCache);
 		}
 
 		/**
@@ -543,6 +513,11 @@ public final class ImageLoaderConfiguration {
 			this.defaultDisplayImageOptions = defaultDisplayImageOptions;
 			return this;
 		}
+
+		public Builder preventFlickerId(int preventFlickerId){
+		    this.preventFlickerId = preventFlickerId;
+		    return this;
+        }
 
 		/**
 		 * Enables detail logging of {@link ImageLoader} work. To prevent detail logs don't call this method.

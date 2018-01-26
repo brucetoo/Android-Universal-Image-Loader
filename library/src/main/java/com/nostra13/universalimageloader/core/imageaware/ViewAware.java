@@ -16,10 +16,13 @@
 package com.nostra13.universalimageloader.core.imageaware;
 
 import android.graphics.Bitmap;
+import android.graphics.drawable.AnimationDrawable;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
+
 import com.nostra13.universalimageloader.core.assist.ViewScaleType;
 import com.nostra13.universalimageloader.utils.L;
 
@@ -32,7 +35,7 @@ import java.lang.ref.WeakReference;
  * @author Sergey Tarasevich (nostra13[at]gmail[dot]com)
  * @since 1.9.2
  */
-public abstract class ViewAware implements ImageAware {
+public class ViewAware implements ImageAware {
 
 	public static final String WARN_CANT_SET_DRAWABLE = "Can't set a drawable into view. You should call ImageLoader on UI thread for it.";
 	public static final String WARN_CANT_SET_BITMAP = "Can't set a bitmap into view. You should call ImageLoader on UI thread for it.";
@@ -174,11 +177,19 @@ public abstract class ViewAware implements ImageAware {
 	 * Should set drawable into incoming view. Incoming view is guaranteed not null.<br />
 	 * This method is called on UI thread.
 	 */
-	protected abstract void setImageDrawableInto(Drawable drawable, View view);
+	protected void setImageDrawableInto(Drawable drawable, View view){
+         view.setBackgroundDrawable(drawable);
+        if (drawable instanceof AnimationDrawable) {
+            ((AnimationDrawable)drawable).start();
+        }
+    }
 
 	/**
 	 * Should set Bitmap into incoming view. Incoming view is guaranteed not null.< br />
 	 * This method is called on UI thread.
 	 */
-	protected abstract void setImageBitmapInto(Bitmap bitmap, View view);
+	protected void setImageBitmapInto(Bitmap bitmap, View view){
+	    view.setBackgroundDrawable(new BitmapDrawable(bitmap));
+    }
+
 }

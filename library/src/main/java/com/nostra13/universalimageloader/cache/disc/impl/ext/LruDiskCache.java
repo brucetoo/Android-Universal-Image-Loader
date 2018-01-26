@@ -112,6 +112,7 @@ public class LruDiskCache implements DiskCache {
 			cache = DiskLruCache.open(cacheDir, 1, 1, cacheMaxSize, cacheMaxFileCount);
 		} catch (IOException e) {
 			L.e(e);
+			//backup cache dir if the main dir is not available
 			if (reserveCacheDir != null) {
 				initCache(reserveCacheDir, null, cacheMaxSize, cacheMaxFileCount);
 			}
@@ -142,7 +143,13 @@ public class LruDiskCache implements DiskCache {
 		}
 	}
 
-	@Override
+    @Override
+    public boolean isExist(String imageUri) {
+        File cacheFile = get(imageUri);
+        return cacheFile != null && cacheFile.exists();
+    }
+
+    @Override
 	public boolean save(String imageUri, InputStream imageStream, IoUtils.CopyListener listener) throws IOException {
 		DiskLruCache.Editor editor = cache.edit(getKey(imageUri));
 		if (editor == null) {

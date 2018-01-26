@@ -54,7 +54,9 @@ public class UILApplication extends Application {
 		config.diskCacheFileNameGenerator(new Md5FileNameGenerator());
 		config.diskCacheSize(50 * 1024 * 1024); // 50 MiB
 		config.tasksProcessingOrder(QueueProcessingType.LIFO);
-		config.writeDebugLogs(); // Remove for release app
+		//must be config if want a better performance
+        config.preventFlickerId(R.id.item_flicker_tag);
+        config.writeDebugLogs(); // Remove for release app
 
 		// Initialize ImageLoader with configuration.
 		ImageLoader.getInstance().init(config.build());

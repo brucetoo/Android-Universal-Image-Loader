@@ -62,7 +62,7 @@ final class DisplayBitmapTask implements Runnable {
 		if (imageAware.isCollected()) {
 			L.d(LOG_TASK_CANCELLED_IMAGEAWARE_COLLECTED, memoryCacheKey);
 			listener.onLoadingCancelled(imageUri, imageAware.getWrappedView());
-		} else if (isViewWasReused()) {
+		} else if (isViewWasReused()) {//view is reused, compare by hash-code of v-object
 			L.d(LOG_TASK_CANCELLED_IMAGEAWARE_REUSED, memoryCacheKey);
 			listener.onLoadingCancelled(imageUri, imageAware.getWrappedView());
 		} else {

@@ -19,6 +19,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -53,14 +54,24 @@ public class ImageListFragment extends AbsListViewBaseFragment {
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		View rootView = inflater.inflate(R.layout.fr_image_list, container, false);
 		listView = (ListView) rootView.findViewById(android.R.id.list);
-		((ListView) listView).setAdapter(new ImageAdapter(getActivity()));
+        final ImageAdapter adapter = new ImageAdapter(getActivity());
+        ((ListView) listView).setAdapter(adapter);
 		listView.setOnItemClickListener(new OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 				startImagePagerActivity(position);
 			}
 		});
-		return rootView;
+
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                adapter.notifyDataSetChanged();
+                handler.postDelayed(this, 5000);
+            }
+        }, 5000);
+        return rootView;
 	}
 
 	@Override

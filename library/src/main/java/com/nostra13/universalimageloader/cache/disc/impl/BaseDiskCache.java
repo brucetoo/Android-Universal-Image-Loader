@@ -98,6 +98,12 @@ public abstract class BaseDiskCache implements DiskCache {
 		return getFile(imageUri);
 	}
 
+    @Override
+    public boolean isExist(String imageUri) {
+        File cacheFile = get(imageUri);
+        return cacheFile != null && cacheFile.exists();
+    }
+
 	@Override
 	public boolean save(String imageUri, InputStream imageStream, IoUtils.CopyListener listener) throws IOException {
 		File imageFile = getFile(imageUri);

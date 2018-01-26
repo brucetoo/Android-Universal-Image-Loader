@@ -36,6 +36,13 @@ public interface DiskCache {
 	 */
 	File getDirectory();
 
+    /**
+     * Check if imageUri's cache file is exist
+     * @param imageUri original image URI
+     * @return <b>true</b> exist
+     */
+	boolean isExist(String imageUri);
+
 	/**
 	 * Returns file of cached image
 	 *

@@ -49,10 +49,12 @@ class ImageLoaderEngine {
 			.synchronizedMap(new HashMap<Integer, String>());
 	private final Map<String, ReentrantLock> uriLocks = new WeakHashMap<String, ReentrantLock>();
 
+	//当前是否暂停的原子值
 	private final AtomicBoolean paused = new AtomicBoolean(false);
 	private final AtomicBoolean networkDenied = new AtomicBoolean(false);
 	private final AtomicBoolean slowNetwork = new AtomicBoolean(false);
 
+	//暂停锁
 	private final Object pauseLock = new Object();
 
 	ImageLoaderEngine(ImageLoaderConfiguration configuration) {
@@ -190,6 +192,7 @@ class ImageLoaderEngine {
 		taskDistributor.execute(r);
 	}
 
+	//每个uri对应一个ReentrantLock,每个线程只能单次访问，除非锁被释放
 	ReentrantLock getLockForUri(String uri) {
 		ReentrantLock lock = uriLocks.get(uri);
 		if (lock == null) {
@@ -199,10 +202,12 @@ class ImageLoaderEngine {
 		return lock;
 	}
 
+	//获取当前线程是否被暂停执行加载图片
 	AtomicBoolean getPause() {
 		return paused;
 	}
 
+	//获取暂停锁
 	Object getPauseLock() {
 		return pauseLock;
 	}

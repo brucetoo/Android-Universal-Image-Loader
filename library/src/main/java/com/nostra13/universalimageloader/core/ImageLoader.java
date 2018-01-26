@@ -32,6 +32,7 @@ import com.nostra13.universalimageloader.core.assist.ViewScaleType;
 import com.nostra13.universalimageloader.core.imageaware.ImageAware;
 import com.nostra13.universalimageloader.core.imageaware.ImageViewAware;
 import com.nostra13.universalimageloader.core.imageaware.NonViewAware;
+import com.nostra13.universalimageloader.core.imageaware.ViewAware;
 import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
 import com.nostra13.universalimageloader.core.listener.ImageLoadingProgressListener;
 import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
@@ -244,7 +245,14 @@ public class ImageLoader {
 			options = configuration.defaultDisplayImageOptions;
 		}
 
-		if (TextUtils.isEmpty(uri)) {
+		if(imageAware.getWrappedView() != null && !checkNeedLoadImage(imageAware,uri)){
+            //1. imageAware's wrapper view is null, need be downloaded
+            //2. imageAware's wrapper view not null, but the view's target uri not changed, don't need downloaded
+		    return;
+        }
+
+		if (TextUtils.isEmpty(uri)) {//empty uri
+            //need be canceled first
 			engine.cancelDisplayTaskFor(imageAware);
 			listener.onLoadingStarted(uri, imageAware.getWrappedView());
 			if (options.shouldShowImageForEmptyUri()) {
@@ -256,21 +264,24 @@ public class ImageLoader {
 			return;
 		}
 
-		if (targetSize == null) {
+		if (targetSize == null) {//view's size by default
 			targetSize = ImageSizeUtils.defineTargetSizeForView(imageAware, configuration.getMaxImageSize());
 		}
 		String memoryCacheKey = MemoryCacheUtils.generateKey(uri, targetSize);
+		//put key-value in map
 		engine.prepareDisplayTaskFor(imageAware, memoryCacheKey);
 
 		listener.onLoadingStarted(uri, imageAware.getWrappedView());
 
 		Bitmap bmp = configuration.memoryCache.get(memoryCacheKey);
-		if (bmp != null && !bmp.isRecycled()) {
+		if (bmp != null && !bmp.isRecycled()) {//bitmap already cached in memory
 			L.d(LOG_LOAD_IMAGE_FROM_MEMORY_CACHE, memoryCacheKey);
 
+			//process bitmap whatever we want before display..
 			if (options.shouldPostProcess()) {
 				ImageLoadingInfo imageLoadingInfo = new ImageLoadingInfo(uri, imageAware, targetSize, memoryCacheKey,
 						options, listener, progressListener, engine.getLockForUri(uri));
+				//process + display task runnable
 				ProcessAndDisplayImageTask displayTask = new ProcessAndDisplayImageTask(engine, bmp, imageLoadingInfo,
 						defineHandler(options));
 				if (options.isSyncLoading()) {
@@ -278,11 +289,11 @@ public class ImageLoader {
 				} else {
 					engine.submit(displayTask);
 				}
-			} else {
+			} else {//display bitmap directly
 				options.getDisplayer().display(bmp, imageAware, LoadedFrom.MEMORY_CACHE);
 				listener.onLoadingComplete(uri, imageAware.getWrappedView(), bmp);
 			}
-		} else {
+		} else {//start loading bitmap
 			if (options.shouldShowImageOnLoading()) {
 				imageAware.setImageDrawable(options.getImageOnLoading(configuration.resources));
 			} else if (options.isResetViewBeforeLoading()) {
@@ -300,6 +311,29 @@ public class ImageLoader {
 			}
 		}
 	}
+
+	private boolean checkNeedLoadImage(ImageAware imageAware,String uri){
+	    //save tag by id : configuration.preventFlickerId
+        boolean needLoad = true;
+        int preventFlickerId = configuration.preventFlickerId;
+        if(preventFlickerId == -1){
+            return true;
+        }
+        Object tag = imageAware.getWrappedView().getTag(preventFlickerId);
+        if(tag != null){
+            String oldUri = (String) tag;
+            if(oldUri.equals(uri)){
+                needLoad = false;
+            }else {
+                needLoad = true;
+            }
+        }
+        if(needLoad){
+            imageAware.getWrappedView().setTag(preventFlickerId,uri);
+        }
+        L.i(TAG, "checkNeedLoadImage -> needLoad: " + needLoad);
+        return needLoad;
+    }
 
 	/**
 	 * Adds display image task to execution pool. Image will be set to ImageView when it's turn. <br/>
@@ -643,32 +677,10 @@ public class ImageLoader {
 	 * Returns disk cache
 	 *
 	 * @throws IllegalStateException if {@link #init(ImageLoaderConfiguration)} method wasn't called before
-	 * @deprecated Use {@link #getDiskCache()} instead
-	 */
-	@Deprecated
-	public DiskCache getDiscCache() {
-		return getDiskCache();
-	}
-
-	/**
-	 * Returns disk cache
-	 *
-	 * @throws IllegalStateException if {@link #init(ImageLoaderConfiguration)} method wasn't called before
 	 */
 	public DiskCache getDiskCache() {
 		checkConfiguration();
-		return configuration.diskCache;
-	}
-
-	/**
-	 * Clears disk cache.
-	 *
-	 * @throws IllegalStateException if {@link #init(ImageLoaderConfiguration)} method wasn't called before
-	 * @deprecated Use {@link #clearDiskCache()} instead
-	 */
-	@Deprecated
-	public void clearDiscCache() {
-		clearDiskCache();
+        return configuration.diskCache;
 	}
 
 	/**
@@ -693,8 +705,12 @@ public class ImageLoader {
 	 * Returns URI of image which is loading at this moment into passed
 	 * {@link android.widget.ImageView ImageView}
 	 */
-	public String getLoadingUriForView(ImageView imageView) {
-		return engine.getLoadingUriForView(new ImageViewAware(imageView));
+	public String getLoadingUriForView(View imageView) {
+	    if(imageView instanceof ImageView){
+            return engine.getLoadingUriForView(new ImageViewAware((ImageView) imageView));
+        }else {
+            return engine.getLoadingUriForView(new ViewAware(imageView));
+        }
 	}
 
 	/**
@@ -714,8 +730,12 @@ public class ImageLoader {
 	 *
 	 * @param imageView {@link android.widget.ImageView ImageView} for which display task will be cancelled
 	 */
-	public void cancelDisplayTask(ImageView imageView) {
-		engine.cancelDisplayTaskFor(new ImageViewAware(imageView));
+	public void cancelDisplayTask(View imageView) {
+	    if(imageView instanceof ImageView){
+            engine.cancelDisplayTaskFor(new ImageViewAware((ImageView) imageView));
+        }else {
+            engine.cancelDisplayTaskFor(new ViewAware(imageView));
+        }
 	}
 
 	/**
